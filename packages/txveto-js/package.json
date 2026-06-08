@@ -1,6 +1,6 @@
 {
   "name": "txveto-js",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Minimal runtime budget and loop guard for AI agents (JavaScript/TypeScript)",
   "license": "MIT",
   "type": "module",

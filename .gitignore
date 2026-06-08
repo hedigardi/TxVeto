@@ -2,6 +2,10 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .coverage
+.venv/
+.venv-testpypi/
 dist/
 build/
 *.egg-info/
+node_modules/
+packages/txveto-js/node_modules/
