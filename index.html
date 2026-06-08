@@ -168,23 +168,6 @@
         transform: translateY(-2px) scale(1.03);
       }
 
-      .logo-hint {
-        position: absolute;
-        left: 50%;
-        bottom: -30px;
-        transform: translateX(-50%);
-        font-size: 0.74rem;
-        border-radius: 999px;
-        padding: 5px 10px;
-        background: rgba(15, 23, 42, 0.9);
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        color: #e2e8f0;
-        opacity: 0;
-      }
-      .logo-trigger:hover .logo-hint {
-        opacity: 1;
-      }
-
       h1 {
         margin: 0.85rem 0 0.65rem;
         font-size: clamp(2rem, 5vw, 4rem);
@@ -366,7 +349,6 @@
               role="button"
               tabindex="0"
             />
-            <span class="logo-hint">Click to expand</span>
           </div>
           <div>
             <strong style="font-size: 1.25rem">TxVeto</strong>
@@ -374,9 +356,6 @@
               Decentralized Transaction Veto
             </div>
           </div>
-        </div>
-        <div class="hero-top">
-          <span class="kicker">Decentralized Transaction Veto</span>
         </div>
         <h1>Stop runaway agent spend before the next step.</h1>
         <p class="lead">
