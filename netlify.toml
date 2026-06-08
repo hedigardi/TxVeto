@@ -4,10 +4,21 @@
   # update publish to that folder.
   publish = "."
   command = "echo 'No build step configured'"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
   PYTHON_VERSION = "3.12"
+
+[[redirects]]
+  from = "/api/simulate"
+  to = "/.netlify/functions/simulate"
+  status = 200
+
+[[redirects]]
+  from = "/playground"
+  to = "/playground.html"
+  status = 301
 
 # SPA fallback. Safe to keep if index.html exists in the publish directory.
 [[redirects]]
