@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "txveto"
+version = "0.1.0"
+description = "In-process budget and loop guard for AI agents"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "TxVeto" }]
+license = "MIT"
+dependencies = []
+keywords = ["ai", "agent", "budget", "guardrails", "mcp", "safety", "runtime"]
+classifiers = [
+	"Development Status :: 3 - Alpha",
+	"Intended Audience :: Developers",
+	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3.10",
+	"Programming Language :: Python :: 3.11",
+	"Programming Language :: Python :: 3.12",
+	"Programming Language :: Python :: 3.13",
+	"Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://txveto.com"
+Repository = "https://github.com/hedigardi/TxVeto"
+Issues = "https://github.com/hedigardi/TxVeto/issues"
+Documentation = "https://github.com/hedigardi/TxVeto#readme"
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+txveto-demo = "txveto.demo:main"
+txveto-web-demo = "txveto.web_demo:main"
+txveto-mcp = "txveto.mcp_server:main"
+
+[tool.setuptools]
+packages = ["txveto"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+

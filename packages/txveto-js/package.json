@@ -1,0 +1,27 @@
+{
+  "name": "txveto-js",
+  "version": "0.1.0",
+  "description": "Minimal runtime budget and loop guard for AI agents (JavaScript/TypeScript)",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"import('node:fs').then(fs=>fs.rmSync('dist',{recursive:true,force:true}))\""
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "guardrails",
+    "budget",
+    "runtime",
+    "safety"
+  ],
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}
