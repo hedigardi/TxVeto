@@ -65,16 +65,15 @@ def render_demo_page() -> str:
     }
 
     .shell {
-      width: min(1180px, calc(100% - 32px));
+      width: min(1180px, calc(100% - 2rem));
       margin: 0 auto;
-      padding: 32px 0 40px;
+      padding: 22px 0 40px;
     }
 
     .hero {
       display: grid;
-      grid-template-columns: 1.3fr 0.9fr;
+      grid-template-columns: 1.25fr 0.95fr;
       gap: 20px;
-      align-items: stretch;
     }
 
     .card {
@@ -82,7 +81,6 @@ def render_demo_page() -> str:
       border: 1px solid var(--line);
       border-radius: 24px;
       box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
     }
 
     .intro {
@@ -492,6 +490,61 @@ def render_demo_page() -> str:
       font-size: 0.92rem;
     }
 
+    .label-row,
+    .entry-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .label-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(15, 23, 42, 0.42);
+      color: var(--muted);
+    }
+
+    .label-icon {
+      width: 0.95rem;
+      height: 0.95rem;
+      display: inline-flex;
+      flex: 0 0 auto;
+    }
+
+    .label-icon svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .entry-title {
+      display: block;
+      color: var(--text);
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .entry-meta {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.92rem;
+    }
+
     .terminal-head {
       display: flex;
       align-items: center;
@@ -600,7 +653,6 @@ def render_demo_page() -> str:
         <div class="intro-brand">
           <div class="logo-trigger-wrap">
             <img class="intro-brand-logo" id="logo_trigger" src="/assets/images/logo.png" alt="TxVeto logo" role="button" tabindex="0" />
-            <span class="logo-hint">Click to expand</span>
           </div>
           <div class="intro-brand-text">
             <strong>TxVeto</strong>
@@ -749,14 +801,75 @@ def render_demo_page() -> str:
     }
 
     function render(entries, summary, attackPrompt, transcript) {
+      const roleLabels = {
+        user: {
+          label: 'Input',
+          title: 'User prompt',
+          icon: '<svg viewBox="0 0 24 24"><path d="M4 12h12"/><path d="M12 5l7 7-7 7"/></svg>',
+        },
+        agent: {
+          label: 'Planner',
+          title: 'Execution plan',
+          icon: '<svg viewBox="0 0 24 24"><path d="M5 6h14"/><path d="M5 12h9"/><path d="M5 18h12"/></svg>',
+        },
+        guard: {
+          label: 'Guardrail',
+          title: 'TxVeto checks',
+          icon: '<svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7z"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>',
+        },
+      };
+
+      function iconWrap(svg) {
+        return `<span class="label-icon" aria-hidden="true">${svg}</span>`;
+      }
+
+      function stepMeta(kind) {
+        if (/^step\\s+\\d+$/i.test(kind)) {
+          const number = kind.match(/\\d+/)[0];
+          return {
+            label: `Action ${number}`,
+            icon: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+          };
+        }
+
+        if (kind === 'budget veto') {
+          return {
+            label: 'Budget stop',
+            icon: '<svg viewBox="0 0 24 24"><path d="M12 3l8 4v6c0 4-2.5 7-8 8-5.5-1-8-4-8-8V7z"/><path d="M9 12h6"/></svg>',
+          };
+        }
+
+        if (kind === 'loop veto') {
+          return {
+            label: 'Loop stop',
+            icon: '<svg viewBox="0 0 24 24"><path d="M4 7h6l-2-2"/><path d="M20 17h-6l2 2"/><path d="M6 7a7 7 0 0 1 12 3"/><path d="M18 17a7 7 0 0 1-12-3"/></svg>',
+          };
+        }
+
+        if (kind === 'Outcome') {
+          return {
+            label: 'Summary',
+            icon: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
+          };
+        }
+
+        return {
+          label: kind,
+          icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></svg>',
+        };
+      }
+
       conversation.innerHTML = '';
       transcript.forEach(line => {
         const bubble = document.createElement('div');
         bubble.className = `bubble ${line.role}`;
+        const meta = roleLabels[line.role] || roleLabels.guard;
         bubble.innerHTML = `
-          <div class="role">${line.role}</div>
-          <span class="title">${line.title}</span>
-          <div class="content">${line.message}</div>
+          <div class="label-row">
+            <span class="label-chip">${iconWrap(meta.icon)}<span>${meta.label}</span></span>
+          </div>
+          <span class="entry-title">${meta.title}</span>
+          <div class="entry-meta">${line.message}</div>
         `;
         conversation.appendChild(bubble);
       });
@@ -766,20 +879,40 @@ def render_demo_page() -> str:
       if (attackPrompt) {
         const attack = document.createElement('div');
         attack.className = 'entry';
-        attack.innerHTML = `<strong>Prompt injection <span class="badge info">ATTEMPT</span></strong><div class="meta">${attackPrompt}</div>`;
+        attack.innerHTML = `
+          <div class="entry-head">
+            <span class="label-chip">${iconWrap(roleLabels.user.icon)}<span>${roleLabels.user.label}</span></span>
+            <span class="label-chip">${iconWrap('<svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M5 8h14"/></svg>')}<span>ATTEMPT</span></span>
+          </div>
+          <strong class="entry-title">${roleLabels.user.title}</strong>
+          <div class="entry-meta">${attackPrompt}</div>
+        `;
         log.appendChild(attack);
       }
 
       entries.forEach(entry => {
         const el = document.createElement('div');
         el.className = 'entry';
-        el.innerHTML = `<strong>${entry.kind} <span class="badge ${entry.severity}">${entry.severity.toUpperCase()}</span></strong><div class="meta">${entry.message}</div>`;
+        const meta = stepMeta(entry.kind);
+        el.innerHTML = `
+          <div class="entry-head">
+            <span class="label-chip">${iconWrap(meta.icon)}<span>${meta.label}</span></span>
+            <span class="label-chip">${iconWrap('<svg viewBox="0 0 24 24"><path d="M7 7h10"/><path d="M7 12h10"/><path d="M7 17h10"/></svg>')}<span>${entry.severity.toUpperCase()}</span></span>
+          </div>
+          <div class="entry-meta">${entry.message}</div>
+        `;
         log.appendChild(el);
       });
 
       const tail = document.createElement('div');
       tail.className = 'entry';
-      tail.innerHTML = `<strong>Summary <span class="badge ${summary.status === 'allowed' ? 'ok' : 'warn'}">${summary.status.toUpperCase()}</span></strong><div class="meta">${summary.detail}</div>`;
+      tail.innerHTML = `
+        <div class="entry-head">
+          <span class="label-chip">${iconWrap(stepMeta('Outcome').icon)}<span>Summary</span></span>
+          <span class="label-chip">${iconWrap('<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>')}<span>${summary.status.toUpperCase()}</span></span>
+        </div>
+        <div class="entry-meta">${summary.detail}</div>
+      `;
       log.appendChild(tail);
       status.textContent = summary.status === 'allowed' ? 'Simulation passed' : 'Simulation vetoed';
       riskFill.style.width = summary.status === 'allowed' ? '22%' : '86%';
