@@ -36,6 +36,11 @@ def render_demo_page() -> str:
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TxVeto Playground</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
+  <link rel="shortcut icon" href="/assets/images/favicon.ico" />
+  <link rel="manifest" href="/assets/images/site.webmanifest" />
   <style>
     :root {
       color-scheme: dark;
@@ -407,6 +412,55 @@ def render_demo_page() -> str:
       color: #0b1020;
       border-color: transparent;
     }
+    .primary:disabled {
+      opacity: 0.72;
+      cursor: wait;
+      transform: none;
+    }
+
+    .button-icon,
+    .button-spinner {
+      width: 1em;
+      height: 1em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+
+    .button-spinner {
+      display: none;
+    }
+
+    .button-icon svg,
+    .button-spinner svg {
+      width: 1em;
+      height: 1em;
+      display: block;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .button-spinner svg {
+      animation: spin 0.9s linear infinite;
+    }
+
+    .is-running .button-spinner {
+      display: inline-flex;
+    }
+
+    .is-running .button-icon {
+      display: none;
+    }
+
+    .run-meta {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
 
     .secondary {
       background: rgba(15, 23, 42, 0.88);
@@ -449,6 +503,11 @@ def render_demo_page() -> str:
       padding: 14px 16px;
       border: 1px solid rgba(148, 163, 184, 0.14);
       background: rgba(2, 6, 23, 0.42);
+    }
+
+    .bubble.fresh,
+    .entry.fresh {
+      animation: fade-up 220ms ease both;
     }
 
     .bubble.user {
@@ -609,6 +668,22 @@ def render_demo_page() -> str:
     .badge.warn { background: rgba(251, 113, 133, 0.14); color: #fecdd3; }
     .badge.info { background: rgba(56, 189, 248, 0.14); color: #bae6fd; }
 
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes fade-up {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     .site-footer {
       margin-top: 22px;
       padding: 16px 20px;
@@ -705,11 +780,20 @@ def render_demo_page() -> str:
           </label>
         </div>
         <div class="actions">
-          <button class="primary" onclick="runDemo()">Run simulation</button>
+          <button id="run_button" class="primary" onclick="runDemo()">
+            <span class="button-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </span>
+            <span class="button-spinner" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/></svg>
+            </span>
+            <span id="run_button_text">Run simulation</span>
+          </button>
           <button class="secondary" onclick="loadPreset('budget')">Budget preset</button>
           <button class="secondary" onclick="loadPreset('loop')">Loop preset</button>
           <button class="secondary" onclick="loadPreset('injection')">Prompt injection preset</button>
         </div>
+        <div id="run_meta" class="run-meta" aria-live="polite">Ready to run</div>
 
         <div class="meter" aria-hidden="true"><div id="risk_fill" class="meter-fill"></div></div>
 
@@ -742,9 +826,19 @@ def render_demo_page() -> str:
     const conversation = document.getElementById('conversation');
     const status = document.getElementById('status');
     const riskFill = document.getElementById('risk_fill');
+    const runButton = document.getElementById('run_button');
+    const runButtonText = document.getElementById('run_button_text');
+    const runMeta = document.getElementById('run_meta');
     const logoTrigger = document.getElementById('logo_trigger');
     const logoModal = document.getElementById('logo_modal');
     const logoModalClose = document.getElementById('logo_modal_close');
+    let runCounter = 0;
+
+    function setRunningState(isRunning) {
+      runButton.disabled = isRunning;
+      runButton.classList.toggle('is-running', isRunning);
+      runButtonText.textContent = isRunning ? 'Running simulation...' : 'Run simulation';
+    }
 
     function openLogoModal() {
       logoModal.classList.add('open');
@@ -801,6 +895,9 @@ def render_demo_page() -> str:
     }
 
     function render(entries, summary, attackPrompt, transcript) {
+      runCounter += 1;
+      runMeta.textContent = `Run #${runCounter} · ${new Date().toLocaleTimeString()}`;
+
       const roleLabels = {
         user: {
           label: 'Input',
@@ -860,9 +957,10 @@ def render_demo_page() -> str:
       }
 
       conversation.innerHTML = '';
-      transcript.forEach(line => {
+      transcript.forEach((line, index) => {
         const bubble = document.createElement('div');
-        bubble.className = `bubble ${line.role}`;
+        bubble.className = `bubble ${line.role} fresh`;
+        bubble.style.animationDelay = `${index * 18}ms`;
         const meta = roleLabels[line.role] || roleLabels.guard;
         bubble.innerHTML = `
           <div class="label-row">
@@ -878,7 +976,8 @@ def render_demo_page() -> str:
 
       if (attackPrompt) {
         const attack = document.createElement('div');
-        attack.className = 'entry';
+        attack.className = 'entry fresh';
+        attack.style.animationDelay = `${(transcript.length + 1) * 16}ms`;
         attack.innerHTML = `
           <div class="entry-head">
             <span class="label-chip">${iconWrap(roleLabels.user.icon)}<span>${roleLabels.user.label}</span></span>
@@ -890,9 +989,10 @@ def render_demo_page() -> str:
         log.appendChild(attack);
       }
 
-      entries.forEach(entry => {
+      entries.forEach((entry, index) => {
         const el = document.createElement('div');
-        el.className = 'entry';
+        el.className = 'entry fresh';
+        el.style.animationDelay = `${(transcript.length + 2 + index) * 16}ms`;
         const meta = stepMeta(entry.kind);
         el.innerHTML = `
           <div class="entry-head">
@@ -905,7 +1005,8 @@ def render_demo_page() -> str:
       });
 
       const tail = document.createElement('div');
-      tail.className = 'entry';
+      tail.className = 'entry fresh';
+      tail.style.animationDelay = `${(transcript.length + 2 + entries.length) * 16}ms`;
       tail.innerHTML = `
         <div class="entry-head">
           <span class="label-chip">${iconWrap(stepMeta('Outcome').icon)}<span>Summary</span></span>
@@ -922,6 +1023,7 @@ def render_demo_page() -> str:
     }
 
     async function runDemo() {
+      setRunningState(true);
       status.textContent = 'Running...';
       const payload = {
         mode: document.getElementById('mode').value,
@@ -935,13 +1037,25 @@ def render_demo_page() -> str:
         steps: Number(document.getElementById('steps').value),
       };
 
-      const response = await fetch('/api/simulate', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload),
-      });
-      const data = await response.json();
-      render(data.entries, data.summary, data.attack_prompt, data.transcript);
+      try {
+        const response = await fetch('/api/simulate', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          runMeta.textContent = 'Run failed';
+          log.innerHTML = `<div class="entry fresh"><strong class="entry-title">Error</strong><div class="entry-meta">${text}</div></div>`;
+          return;
+        }
+
+        const data = await response.json();
+        render(data.entries, data.summary, data.attack_prompt, data.transcript);
+      } finally {
+        setRunningState(false);
+      }
     }
 
     loadPreset('budget');
