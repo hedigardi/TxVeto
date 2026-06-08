@@ -75,29 +75,8 @@
         padding: 1.2rem 0 0.4rem;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-end;
         gap: 1rem;
-      }
-
-      .brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.7rem;
-        font-weight: 700;
-      }
-
-      .brand-logo {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        object-fit: contain;
-        padding: 5px;
-        background: linear-gradient(
-          160deg,
-          rgba(250, 245, 235, 0.95),
-          rgba(255, 255, 255, 0.82)
-        );
-        border: 1px solid var(--line);
       }
 
       .top-actions {
@@ -139,6 +118,13 @@
         align-items: flex-start;
         justify-content: space-between;
         gap: 1rem;
+      }
+
+      .intro-brand {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 14px;
       }
       .kicker {
         border: 1px solid var(--line);
@@ -266,22 +252,18 @@
         font-size: 0.93rem;
       }
 
-      footer {
-        border-top: 1px solid var(--line);
-        background: color-mix(in srgb, var(--panel) 92%, transparent);
-      }
-      .footer-inner {
-        width: min(1080px, calc(100% - 2rem));
-        margin: 0 auto;
-        min-height: 64px;
+      .site-footer {
+        margin-top: 18px;
+        padding: 16px 20px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: var(--panel);
         display: flex;
-        align-items: center;
         justify-content: space-between;
-        gap: 1rem;
         color: var(--muted);
-        font-size: 0.92rem;
+        gap: 8px;
       }
-      .footer-inner a {
+      .site-footer a {
         color: var(--accent);
         text-decoration: none;
         font-weight: 600;
@@ -345,19 +327,12 @@
         .hero-top {
           flex-direction: column;
         }
-        .hero-logo-wrap {
-          width: 100%;
-          justify-content: flex-start;
-        }
         .grid {
           grid-template-columns: 1fr;
         }
-        .footer-inner {
-          min-height: 72px;
+        .site-footer {
           flex-direction: column;
-          justify-content: center;
           align-items: flex-start;
-          padding: 0.5rem 0;
         }
       }
     </style>
@@ -365,14 +340,6 @@
   <body>
     <header class="wrap">
       <div class="topbar">
-        <div class="brand">
-          <img
-            class="brand-logo"
-            src="/assets/images/logo.png"
-            alt="TxVeto logo"
-          />
-          TxVeto
-        </div>
         <div class="top-actions">
           <a class="nav-link" href="/playground">Playground</a>
           <button
@@ -389,21 +356,27 @@
 
     <main class="wrap">
       <section class="hero">
-        <div class="hero-top">
-          <span class="kicker">Decentralized Transaction Veto</span>
-          <div class="hero-logo-wrap">
-            <div class="logo-trigger">
-              <img
-                id="logo_trigger"
-                class="hero-logo"
-                src="/assets/images/logo.png"
-                alt="TxVeto logo"
-                role="button"
-                tabindex="0"
-              />
-              <span class="logo-hint">Click to expand</span>
+        <div class="intro-brand">
+          <div class="logo-trigger">
+            <img
+              id="logo_trigger"
+              class="hero-logo"
+              src="/assets/images/logo.png"
+              alt="TxVeto logo"
+              role="button"
+              tabindex="0"
+            />
+            <span class="logo-hint">Click to expand</span>
+          </div>
+          <div>
+            <strong style="font-size: 1.25rem">TxVeto</strong>
+            <div style="color: var(--muted)">
+              Decentralized Transaction Veto
             </div>
           </div>
+        </div>
+        <div class="hero-top">
+          <span class="kicker">Decentralized Transaction Veto</span>
         </div>
         <h1>Stop runaway agent spend before the next step.</h1>
         <p class="lead">
@@ -460,6 +433,19 @@
           >
         </article>
       </section>
+
+      <footer class="site-footer">
+        <div>Copyright (c) 2026 TxVeto. All rights reserved.</div>
+        <div>
+          A product from
+          <a
+            href="https://hedigardi.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            >hedigardi.com</a
+          >
+        </div>
+      </footer>
     </main>
 
     <div class="logo-modal" id="logo_modal" aria-hidden="true">
@@ -483,21 +469,6 @@
         />
       </div>
     </div>
-
-    <footer>
-      <div class="footer-inner">
-        <div>Copyright (c) 2026 TxVeto. All rights reserved.</div>
-        <div>
-          A product from
-          <a
-            href="https://hedigardi.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            >hedigardi.com</a
-          >
-        </div>
-      </div>
-    </footer>
 
     <script>
       const root = document.documentElement;

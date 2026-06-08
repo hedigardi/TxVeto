@@ -68,27 +68,8 @@
         padding: 1.2rem 0 0.4rem;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-end;
         gap: 1rem;
-      }
-      .brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.7rem;
-        font-weight: 700;
-      }
-      .brand-logo {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        object-fit: contain;
-        padding: 5px;
-        background: linear-gradient(
-          160deg,
-          rgba(250, 245, 235, 0.95),
-          rgba(255, 255, 255, 0.82)
-        );
-        border: 1px solid var(--line);
       }
       .top-actions {
         display: flex;
@@ -328,14 +309,6 @@
   <body>
     <header class="wrap">
       <div class="topbar">
-        <div class="brand">
-          <img
-            class="brand-logo"
-            src="/assets/images/logo.png"
-            alt="TxVeto logo"
-          />
-          TxVeto
-        </div>
         <div class="top-actions">
           <a class="nav-link" href="/">Home</a>
           <button
