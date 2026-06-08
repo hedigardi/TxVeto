@@ -1,0 +1,16 @@
+[build]
+  # Deploy the repository root as a static site.
+  # If you later move your web files to a folder (for example "site"),
+  # update publish to that folder.
+  publish = "."
+  command = "echo 'No build step configured'"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PYTHON_VERSION = "3.12"
+
+# SPA fallback. Safe to keep if index.html exists in the publish directory.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

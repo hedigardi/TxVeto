@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import mimetypes
 from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any, Dict, List
+from urllib.parse import unquote
 
 from .errors import BudgetExceededError, LoopDetectedError
 from .guard import VetoGuard
@@ -98,6 +101,185 @@ def render_demo_page() -> str:
       pointer-events: none;
     }
 
+    .intro-brand {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 18px;
+      padding: 14px;
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(248, 250, 252, 0.12), rgba(15, 23, 42, 0.42));
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      animation: intro-fade-in 450ms ease-out;
+    }
+
+    .logo-trigger-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .intro-brand-logo {
+      width: 120px;
+      height: 120px;
+      border-radius: 26px;
+      object-fit: contain;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      box-shadow: 0 20px 34px rgba(2, 6, 23, 0.42);
+      background: linear-gradient(160deg, rgba(250, 245, 235, 0.95), rgba(255, 255, 255, 0.82));
+      padding: 12px;
+      animation: logo-pop-in 520ms ease-out;
+      cursor: zoom-in;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .intro-brand-logo:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 26px 40px rgba(2, 6, 23, 0.5);
+      border-color: rgba(56, 189, 248, 0.5);
+    }
+
+    .intro-brand-logo:focus-visible {
+      outline: 2px solid rgba(56, 189, 248, 0.7);
+      outline-offset: 3px;
+    }
+
+    .logo-hint {
+      position: absolute;
+      left: 50%;
+      bottom: -34px;
+      transform: translateX(-50%) translateY(4px);
+      background: rgba(15, 23, 42, 0.94);
+      color: #e2e8f0;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .logo-trigger-wrap:hover .logo-hint,
+    .logo-trigger-wrap:focus-within .logo-hint {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .logo-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(2, 6, 23, 0.72);
+      backdrop-filter: blur(8px);
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 180ms ease;
+    }
+
+    .logo-modal.open {
+      display: flex;
+      opacity: 1;
+    }
+
+    .logo-modal-card {
+      position: relative;
+      width: min(520px, calc(100vw - 48px));
+      border-radius: 28px;
+      padding: 26px;
+      background: linear-gradient(160deg, rgba(249, 250, 251, 0.98), rgba(236, 253, 245, 0.96));
+      border: 1px solid rgba(186, 230, 253, 0.58);
+      box-shadow: 0 28px 54px rgba(2, 6, 23, 0.42);
+      animation: logo-modal-in 220ms ease;
+    }
+
+    .logo-modal-image {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      border-radius: 20px;
+      background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92));
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      padding: 20px;
+    }
+
+    .logo-modal-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.84);
+      color: #f8fafc;
+      font-size: 20px;
+      line-height: 1;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .logo-modal-close:hover {
+      transform: scale(1.06);
+    }
+
+    @keyframes logo-modal-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .intro-brand-text {
+      display: grid;
+      gap: 2px;
+    }
+
+    .intro-brand-text strong {
+      font-size: 1.35rem;
+      color: #f8fafc;
+      letter-spacing: 0.02em;
+    }
+
+    .intro-brand-text span {
+      font-size: 0.92rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    @keyframes intro-fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes logo-pop-in {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
     .eyebrow {
       display: inline-flex;
       gap: 8px;
@@ -109,6 +291,15 @@ def render_demo_page() -> str:
       font-size: 13px;
       letter-spacing: 0.04em;
       text-transform: uppercase;
+    }
+
+    .eyebrow-logo {
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      box-shadow: 0 8px 18px rgba(2, 6, 23, 0.35);
     }
 
     h1 {
@@ -365,9 +556,40 @@ def render_demo_page() -> str:
     .badge.warn { background: rgba(251, 113, 133, 0.14); color: #fecdd3; }
     .badge.info { background: rgba(56, 189, 248, 0.14); color: #bae6fd; }
 
+    .site-footer {
+      margin-top: 22px;
+      padding: 16px 20px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(2, 6, 23, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .site-footer a {
+      color: #bae6fd;
+      text-decoration: none;
+    }
+
+    .site-footer a:hover {
+      text-decoration: underline;
+    }
+
     @media (max-width: 960px) {
       .hero { grid-template-columns: 1fr; }
       .stats, .grid { grid-template-columns: 1fr; }
+      .site-footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .intro-brand-logo {
+        width: 92px;
+        height: 92px;
+      }
     }
   </style>
 </head>
@@ -375,6 +597,16 @@ def render_demo_page() -> str:
   <main class="shell">
     <section class="hero">
       <div class="card intro">
+        <div class="intro-brand">
+          <div class="logo-trigger-wrap">
+            <img class="intro-brand-logo" id="logo_trigger" src="/assets/images/logo.png" alt="TxVeto logo" role="button" tabindex="0" />
+            <span class="logo-hint">Click to expand</span>
+          </div>
+          <div class="intro-brand-text">
+            <strong>TxVeto</strong>
+            <span>Decentralized Transaction Veto</span>
+          </div>
+        </div>
         <div class="eyebrow">TxVeto Playground</div>
         <h1>Budget and loop vetoes for agent runtime safety.</h1>
         <p class="lede">Run a live simulation of the local guard. The demo shows how TxVeto stops runaway spend, repeated tool calls, and policy violations before the next expensive step lands.</p>
@@ -440,13 +672,56 @@ def render_demo_page() -> str:
         </div>
       </div>
     </section>
+    <footer class="site-footer">
+      <div>Copyright (c) 2026 TxVeto. All rights reserved.</div>
+      <div>A product from <a href="https://hedigardi.com" target="_blank" rel="noopener noreferrer">hedigardi.com</a></div>
+    </footer>
   </main>
+
+  <div class="logo-modal" id="logo_modal" aria-hidden="true">
+    <div class="logo-modal-card" role="dialog" aria-modal="true" aria-label="Expanded TxVeto logo">
+      <button class="logo-modal-close" id="logo_modal_close" aria-label="Close logo preview">\u00d7</button>
+      <img class="logo-modal-image" src="/assets/images/logo.png" alt="TxVeto logo enlarged" />
+    </div>
+  </div>
 
   <script>
     const log = document.getElementById('log');
     const conversation = document.getElementById('conversation');
     const status = document.getElementById('status');
     const riskFill = document.getElementById('risk_fill');
+    const logoTrigger = document.getElementById('logo_trigger');
+    const logoModal = document.getElementById('logo_modal');
+    const logoModalClose = document.getElementById('logo_modal_close');
+
+    function openLogoModal() {
+      logoModal.classList.add('open');
+      logoModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeLogoModal() {
+      logoModal.classList.remove('open');
+      logoModal.setAttribute('aria-hidden', 'true');
+    }
+
+    logoTrigger.addEventListener('click', openLogoModal);
+    logoTrigger.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openLogoModal();
+      }
+    });
+    logoModalClose.addEventListener('click', closeLogoModal);
+    logoModal.addEventListener('click', (event) => {
+      if (event.target === logoModal) {
+        closeLogoModal();
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && logoModal.classList.contains('open')) {
+        closeLogoModal();
+      }
+    });
 
     function loadPreset(mode) {
       document.getElementById('mode').value = mode;
@@ -604,11 +879,43 @@ def simulate_demo_run(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 class DemoHTTPRequestHandler(BaseHTTPRequestHandler):
+    @staticmethod
+    def _resolve_asset_path(url_path: str) -> Path | None:
+        # Resolve only files under /assets to avoid path traversal.
+        if not url_path.startswith("/assets/"):
+            return None
+
+        rel = url_path.lstrip("/")
+        if ".." in rel.split("/"):
+            return None
+
+        candidates = [
+            Path.cwd() / rel,
+            Path(__file__).resolve().parents[1] / rel,
+        ]
+        for candidate in candidates:
+            if candidate.is_file():
+                return candidate
+        return None
+
     def do_GET(self) -> None:
-        if self.path == "/":
+        path = unquote(self.path.split("?", 1)[0])
+
+        if path == "/":
             content = render_demo_page().encode("utf-8")
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+            return
+
+        asset = self._resolve_asset_path(path)
+        if asset is not None:
+            content = asset.read_bytes()
+            mime, _ = mimetypes.guess_type(str(asset))
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", mime or "application/octet-stream")
             self.send_header("Content-Length", str(len(content)))
             self.end_headers()
             self.wfile.write(content)

@@ -24,7 +24,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://txveto.com"
+Homepage = "https://txveto.hedigardi.com"
 Repository = "https://github.com/hedigardi/TxVeto"
 Issues = "https://github.com/hedigardi/TxVeto/issues"
 Documentation = "https://github.com/hedigardi/TxVeto#readme"

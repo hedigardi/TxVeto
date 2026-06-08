@@ -9,3 +9,5 @@ build/
 *.egg-info/
 node_modules/
 packages/txveto-js/node_modules/
+LAUNCH_POSTS.md
+RELEASE_CHECKLIST.md

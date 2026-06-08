@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TxVeto | Runtime Guardrails for AI Agents</title>
+    <meta
+      name="description"
+      content="TxVeto adds in-process budget and loop vetoes to AI agent runtimes."
+    />
+    <style>
+      :root {
+        --bg: #f5f4ef;
+        --paper: #fffdf8;
+        --ink: #1b2230;
+        --muted: #5c6472;
+        --line: #d8d2c2;
+        --brand: #db5c26;
+        --brand-soft: #f8d8c7;
+        --accent: #0b6e67;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(1200px 500px at 0% 0%, #f9e7dc 0%, transparent 60%),
+          radial-gradient(
+            1000px 420px at 100% 10%,
+            #d9efe9 0%,
+            transparent 55%
+          ),
+          linear-gradient(180deg, #f5f4ef 0%, #f1eee5 100%);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .wrap {
+        width: min(1080px, calc(100% - 2rem));
+        margin: 0 auto;
+      }
+
+      header {
+        padding: 1.25rem 0 0.6rem;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .brand-logo {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        object-fit: cover;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 8px 20px rgba(27, 34, 48, 0.15);
+      }
+
+      .dot {
+        width: 0.78rem;
+        height: 0.78rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--brand), #f59459);
+        box-shadow: 0 0 0 5px var(--brand-soft);
+      }
+
+      .hero {
+        margin-top: 1.5rem;
+        padding: 2rem;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: color-mix(in oklab, var(--paper) 92%, white 8%);
+        box-shadow: 0 24px 64px rgba(27, 34, 48, 0.08);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .hero-logo-wrap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 74px;
+        height: 74px;
+        border-radius: 18px;
+        background: linear-gradient(160deg, #fff8ef, #f5eee0);
+        border: 1px solid var(--line);
+        box-shadow: 0 18px 28px rgba(27, 34, 48, 0.12);
+      }
+
+      .hero-logo {
+        width: 52px;
+        height: 52px;
+        object-fit: contain;
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: auto -160px -180px auto;
+        width: 380px;
+        height: 380px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(219, 92, 38, 0.2),
+          transparent 68%
+        );
+        pointer-events: none;
+      }
+
+      .kicker {
+        display: inline-block;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.35rem 0.75rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        background: #fff8ef;
+      }
+
+      h1 {
+        margin: 0.85rem 0 0.65rem;
+        font-size: clamp(2rem, 5vw, 4rem);
+        line-height: 0.96;
+        letter-spacing: -0.04em;
+        max-width: 14ch;
+      }
+
+      .lead {
+        margin: 0;
+        max-width: 65ch;
+        color: var(--muted);
+        line-height: 1.7;
+        font-size: 1.02rem;
+      }
+
+      .cta-row {
+        margin-top: 1.4rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.78rem 1.05rem;
+        border-radius: 14px;
+        border: 1px solid transparent;
+        font-weight: 700;
+        text-decoration: none;
+        transition:
+          transform 150ms ease,
+          box-shadow 150ms ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .btn.primary {
+        background: linear-gradient(135deg, var(--brand), #e47d45);
+        color: white;
+        box-shadow: 0 10px 22px rgba(219, 92, 38, 0.26);
+      }
+
+      .btn.secondary {
+        border-color: var(--line);
+        color: var(--ink);
+        background: #fff;
+      }
+
+      .grid {
+        margin: 1.2rem 0 2.3rem;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.8rem;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 0.9rem;
+        background: #fffdf8;
+      }
+
+      .card strong {
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      .card span {
+        color: var(--muted);
+        line-height: 1.55;
+        font-size: 0.93rem;
+      }
+
+      footer {
+        margin-top: auto;
+        border-top: 1px solid var(--line);
+        background: #f8f5ed;
+      }
+
+      .footer-inner {
+        width: min(1080px, calc(100% - 2rem));
+        margin: 0 auto;
+        min-height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .footer-inner a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .footer-inner a:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 860px) {
+        .hero {
+          padding: 1.35rem;
+        }
+
+        .hero-top {
+          align-items: flex-start;
+        }
+
+        .hero-logo-wrap {
+          width: 62px;
+          height: 62px;
+          border-radius: 15px;
+        }
+
+        .hero-logo {
+          width: 44px;
+          height: 44px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .footer-inner {
+          min-height: 72px;
+          flex-direction: column;
+          justify-content: center;
+          align-items: flex-start;
+          padding: 0.5rem 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="wrap">
+      <div class="brand">
+        <img
+          class="brand-logo"
+          src="/assets/images/logo.png"
+          alt="TxVeto logo"
+        />
+        <span class="dot" aria-hidden="true"></span>TxVeto
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <div class="hero-top">
+          <span class="kicker">Runtime Safety Layer</span>
+          <div class="hero-logo-wrap" aria-hidden="true">
+            <img class="hero-logo" src="/assets/images/logo.png" alt="" />
+          </div>
+        </div>
+        <h1>Stop runaway agent spend before the next step.</h1>
+        <p class="lead">
+          TxVeto is an in-process budget and loop guard for AI agent execution.
+          It applies veto logic locally, tracks cumulative spend, and blocks
+          repeated tool-call loops.
+        </p>
+        <div class="cta-row">
+          <a
+            class="btn primary"
+            href="https://github.com/hedigardi/TxVeto"
+            target="_blank"
+            rel="noopener noreferrer"
+            >View on GitHub</a
+          >
+          <a
+            class="btn secondary"
+            href="https://pypi.org/project/txveto/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >PyPI Package</a
+          >
+          <a
+            class="btn secondary"
+            href="https://www.npmjs.com/package/txveto-js"
+            target="_blank"
+            rel="noopener noreferrer"
+            >npm Package</a
+          >
+        </div>
+      </section>
+
+      <section class="grid" aria-label="Core capabilities">
+        <article class="card">
+          <strong>Budget Guard</strong>
+          <span
+            >Stops execution once cumulative runtime cost crosses your
+            configured budget ceiling.</span
+          >
+        </article>
+        <article class="card">
+          <strong>Loop Detection</strong>
+          <span
+            >Detects repetitive tool-call patterns and vetoes runaway behavior
+            early.</span
+          >
+        </article>
+        <article class="card">
+          <strong>MCP Support</strong>
+          <span
+            >Expose budget and policy controls through MCP tools for runtime
+            governance.</span
+          >
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <div>Copyright (c) 2026 TxVeto. All rights reserved.</div>
+        <div>
+          A product from
+          <a
+            href="https://hedigardi.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            >hedigardi.com</a
+          >
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
