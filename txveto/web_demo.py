@@ -528,6 +528,37 @@ def render_demo_page() -> str:
       background: rgba(15, 23, 42, 0.88);
     }
 
+    #connect_wallet_button.wallet-connected {
+      border-color: rgba(52, 211, 153, 0.45);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.24), rgba(6, 95, 70, 0.4));
+      color: #bbf7d0;
+      box-shadow: 0 8px 18px rgba(16, 185, 129, 0.2);
+    }
+
+    #connect_wallet_button.wallet-wrong-chain {
+      border-color: rgba(251, 191, 36, 0.55);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.26), rgba(146, 64, 14, 0.36));
+      color: #fde68a;
+      box-shadow: 0 8px 18px rgba(245, 158, 11, 0.2);
+    }
+
+    .wallet-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .wallet-chip svg {
+      width: 0.9rem;
+      height: 0.9rem;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: 0 0 auto;
+    }
+
     .terminal {
       margin-top: 20px;
       padding: 18px;
@@ -946,6 +977,32 @@ def render_demo_page() -> str:
       onchainStatus.innerHTML = message;
     }
 
+    function shortAddress(address) {
+      if (!address || address.length < 12) return address || '';
+      return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    }
+
+    function setWalletButtonState(connected, address, wrongChain = false) {
+      connectWalletButton.classList.toggle('wallet-connected', connected && !wrongChain);
+      connectWalletButton.classList.toggle('wallet-wrong-chain', connected && wrongChain);
+
+      if (!connected) {
+        connectWalletButton.innerHTML = 'Connect wallet';
+        connectWalletButton.title = 'Connect wallet';
+        return;
+      }
+
+      const icon = wrongChain
+        ? '<svg viewBox="0 0 24 24"><path d="M12 8v5"/><path d="M12 17h.01"/><path d="M10 3h4l7 12-2 6H5l-2-6z"/></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M20 7v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7"/><path d="M16 7V5a4 4 0 0 0-8 0v2"/></svg>';
+      const label = wrongChain
+        ? `Wrong network · ${shortAddress(address)}`
+        : `Connected · ${shortAddress(address)}`;
+
+      connectWalletButton.innerHTML = `<span class="wallet-chip">${icon}<span>${label}</span></span>`;
+      connectWalletButton.title = address || 'Connected wallet';
+    }
+
     function setOnchainBusy(isBusy) {
       connectWalletButton.disabled = isBusy;
       onchainRunButton.disabled = isBusy;
@@ -953,6 +1010,7 @@ def render_demo_page() -> str:
 
     async function connectWallet() {
       if (!window.ethereum) {
+        setWalletButtonState(false, null);
         setOnchainStatus('No injected wallet found. Install MetaMask or Rabby.');
         return;
       }
@@ -969,15 +1027,38 @@ def render_demo_page() -> str:
         const network = await browserProvider.getNetwork();
         const chainId = Number(network.chainId);
         if (chainId !== 84532) {
+          setWalletButtonState(true, connectedAddress, true);
           setOnchainStatus(`Wallet connected: ${connectedAddress}\nWrong chain: ${chainId}. Switch to Base Sepolia (84532).`);
           return;
         }
 
+        setWalletButtonState(true, connectedAddress, false);
         setOnchainStatus(`Wallet connected: ${connectedAddress}\nChain: Base Sepolia (84532)`);
       } catch (err) {
+        setWalletButtonState(false, null);
         setOnchainStatus(`Wallet error: ${err?.message || String(err)}`);
       } finally {
         setOnchainBusy(false);
+      }
+    }
+
+    async function hydrateWalletState() {
+      if (!window.ethereum) {
+        return;
+      }
+      try {
+        browserProvider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await browserProvider.send('eth_accounts', []);
+        const address = accounts?.[0] || null;
+        if (!address) {
+          return;
+        }
+        connectedAddress = address;
+        const network = await browserProvider.getNetwork();
+        const wrongChain = Number(network.chainId) !== 84532;
+        setWalletButtonState(true, connectedAddress, wrongChain);
+      } catch {
+        // Ignore passive wallet hydration errors.
       }
     }
 
@@ -1261,6 +1342,7 @@ def render_demo_page() -> str:
     }
 
     loadPreset('budget');
+    hydrateWalletState();
     runDemo();
   </script>
 </body>
