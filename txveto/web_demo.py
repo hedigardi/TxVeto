@@ -462,8 +462,101 @@ def render_demo_page() -> str:
       font-size: 0.85rem;
     }
 
+    .onchain-panel {
+      margin-top: 16px;
+      border-radius: 16px;
+      padding: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(15, 23, 42, 0.6);
+    }
+
+    .onchain-panel h3 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      color: #f8fafc;
+    }
+
+    .onchain-status {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .onchain-status a {
+      color: #7dd3fc;
+      text-decoration: underline;
+      font-weight: 700;
+    }
+
+    .tx-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(125, 211, 252, 0.45);
+      background: rgba(8, 47, 73, 0.34);
+      color: #bae6fd;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.8rem;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+
+    .tx-badge:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(8, 47, 73, 0.32);
+      text-decoration: none;
+    }
+
+    .tx-badge svg {
+      width: 0.9rem;
+      height: 0.9rem;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: 0 0 auto;
+    }
+
     .secondary {
       background: rgba(15, 23, 42, 0.88);
+    }
+
+    #connect_wallet_button.wallet-connected {
+      border-color: rgba(52, 211, 153, 0.45);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.24), rgba(6, 95, 70, 0.4));
+      color: #bbf7d0;
+      box-shadow: 0 8px 18px rgba(16, 185, 129, 0.2);
+    }
+
+    #connect_wallet_button.wallet-wrong-chain {
+      border-color: rgba(251, 191, 36, 0.55);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.26), rgba(146, 64, 14, 0.36));
+      color: #fde68a;
+      box-shadow: 0 8px 18px rgba(245, 158, 11, 0.2);
+    }
+
+    .wallet-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .wallet-chip svg {
+      width: 0.9rem;
+      height: 0.9rem;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: 0 0 auto;
     }
 
     .terminal {
@@ -793,6 +886,27 @@ def render_demo_page() -> str:
           <button class="secondary" onclick="loadPreset('loop')">Loop preset</button>
           <button class="secondary" onclick="loadPreset('injection')">Prompt injection preset</button>
         </div>
+
+        <div class="onchain-panel">
+          <h3>On-chain test (Base Sepolia)</h3>
+          <div class="grid">
+            <label class="wide">TxVeto policy contract
+              <input id="policy_address" type="text" value="0x0d8F4Bb1315dBD9F6042f8E32C624f552983040e" />
+            </label>
+            <label>Target address
+              <input id="onchain_target" type="text" value="0x000000000000000000000000000000000000dEaD" />
+            </label>
+            <label>Valid for (minutes)
+              <input id="onchain_valid_mins" type="number" step="1" value="30" />
+            </label>
+          </div>
+          <div class="actions">
+            <button class="secondary" id="connect_wallet_button" onclick="connectWallet()">Connect wallet</button>
+            <button class="secondary" id="onchain_run_button" onclick="runOnchainFlow()">Run on-chain test</button>
+          </div>
+          <div id="onchain_status" class="onchain-status">Wallet not connected.</div>
+        </div>
+
         <div id="run_meta" class="run-meta" aria-live="polite">Ready to run</div>
 
         <div class="meter" aria-hidden="true"><div id="risk_fill" class="meter-fill"></div></div>
@@ -821,6 +935,7 @@ def render_demo_page() -> str:
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
   <script>
     const log = document.getElementById('log');
     const conversation = document.getElementById('conversation');
@@ -832,7 +947,175 @@ def render_demo_page() -> str:
     const logoTrigger = document.getElementById('logo_trigger');
     const logoModal = document.getElementById('logo_modal');
     const logoModalClose = document.getElementById('logo_modal_close');
+    const policyAddressInput = document.getElementById('policy_address');
+    const onchainTargetInput = document.getElementById('onchain_target');
+    const onchainValidMinsInput = document.getElementById('onchain_valid_mins');
+    const onchainStatus = document.getElementById('onchain_status');
+    const connectWalletButton = document.getElementById('connect_wallet_button');
+    const onchainRunButton = document.getElementById('onchain_run_button');
     let runCounter = 0;
+    let connectedAddress = null;
+    let browserProvider = null;
+
+    const policyAbi = [
+      'function createSession(bytes32 sessionId,tuple(address owner,address sessionKey,uint64 validAfter,uint64 validUntil,uint64 periodSeconds,uint256 maxValuePerCall,uint256 maxValuePerPeriod,address spendToken,uint256 maxTokenPerCall,uint256 maxTokenPerPeriod) cfg,address[] targets,bytes4[][] selectorsByTarget)',
+      'function executeThroughSession(bytes32 sessionId,address target,uint256 value,bytes data) returns (bytes)',
+    ];
+
+    const BASESCAN_TX_PREFIX = 'https://sepolia.basescan.org/tx/';
+
+    function shortHash(hash) {
+      if (!hash || hash.length < 14) return hash;
+      return `${hash.slice(0, 10)}...${hash.slice(-6)}`;
+    }
+
+    function txLink(hash, label) {
+      return `<a class="tx-badge" href="${BASESCAN_TX_PREFIX}${hash}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M10 14 20 4"/><path d="M20 14v6h-6"/><path d="M4 10V4h6"/><path d="M4 20 14 10"/></svg><span>${label} (${shortHash(hash)})</span></a>`;
+    }
+
+    function setOnchainStatus(message) {
+      onchainStatus.innerHTML = message;
+    }
+
+    function shortAddress(address) {
+      if (!address || address.length < 12) return address || '';
+      return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    }
+
+    function setWalletButtonState(connected, address, wrongChain = false) {
+      connectWalletButton.classList.toggle('wallet-connected', connected && !wrongChain);
+      connectWalletButton.classList.toggle('wallet-wrong-chain', connected && wrongChain);
+
+      if (!connected) {
+        connectWalletButton.innerHTML = 'Connect wallet';
+        connectWalletButton.title = 'Connect wallet';
+        return;
+      }
+
+      const icon = wrongChain
+        ? '<svg viewBox="0 0 24 24"><path d="M12 8v5"/><path d="M12 17h.01"/><path d="M10 3h4l7 12-2 6H5l-2-6z"/></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M20 7v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7"/><path d="M16 7V5a4 4 0 0 0-8 0v2"/></svg>';
+      const label = wrongChain
+        ? `Wrong network · ${shortAddress(address)}`
+        : `Connected · ${shortAddress(address)}`;
+
+      connectWalletButton.innerHTML = `<span class="wallet-chip">${icon}<span>${label}</span></span>`;
+      connectWalletButton.title = address || 'Connected wallet';
+    }
+
+    function setOnchainBusy(isBusy) {
+      connectWalletButton.disabled = isBusy;
+      onchainRunButton.disabled = isBusy;
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        setWalletButtonState(false, null);
+        setOnchainStatus('No injected wallet found. Install MetaMask or Rabby.');
+        return;
+      }
+      setOnchainBusy(true);
+      try {
+        browserProvider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await browserProvider.send('eth_requestAccounts', []);
+        connectedAddress = accounts?.[0] || null;
+        if (!connectedAddress) {
+          setOnchainStatus('Wallet connection failed.');
+          return;
+        }
+
+        const network = await browserProvider.getNetwork();
+        const chainId = Number(network.chainId);
+        if (chainId !== 84532) {
+          setWalletButtonState(true, connectedAddress, true);
+          setOnchainStatus(`Wallet connected: ${connectedAddress}\nWrong chain: ${chainId}. Switch to Base Sepolia (84532).`);
+          return;
+        }
+
+        setWalletButtonState(true, connectedAddress, false);
+        setOnchainStatus(`Wallet connected: ${connectedAddress}\nChain: Base Sepolia (84532)`);
+      } catch (err) {
+        setWalletButtonState(false, null);
+        setOnchainStatus(`Wallet error: ${err?.message || String(err)}`);
+      } finally {
+        setOnchainBusy(false);
+      }
+    }
+
+    async function hydrateWalletState() {
+      if (!window.ethereum) {
+        return;
+      }
+      try {
+        browserProvider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await browserProvider.send('eth_accounts', []);
+        const address = accounts?.[0] || null;
+        if (!address) {
+          return;
+        }
+        connectedAddress = address;
+        const network = await browserProvider.getNetwork();
+        const wrongChain = Number(network.chainId) !== 84532;
+        setWalletButtonState(true, connectedAddress, wrongChain);
+      } catch {
+        // Ignore passive wallet hydration errors.
+      }
+    }
+
+    async function runOnchainFlow() {
+      if (!window.ethereum) {
+        setOnchainStatus('No injected wallet found.');
+        return;
+      }
+
+      if (!connectedAddress || !browserProvider) {
+        await connectWallet();
+        if (!connectedAddress || !browserProvider) {
+          return;
+        }
+      }
+
+      setOnchainBusy(true);
+      try {
+        const signer = await browserProvider.getSigner();
+        const policyAddress = policyAddressInput.value.trim();
+        const targetAddress = onchainTargetInput.value.trim();
+        const validMins = Math.max(1, Number(onchainValidMinsInput.value) || 30);
+        const nowTs = Math.floor(Date.now() / 1000);
+
+        const policy = new ethers.Contract(policyAddress, policyAbi, signer);
+        const sessionId = ethers.keccak256(
+          ethers.toUtf8Bytes(`txveto-${connectedAddress}-${Date.now()}`)
+        );
+
+        const cfg = {
+          owner: connectedAddress,
+          sessionKey: connectedAddress,
+          validAfter: nowTs,
+          validUntil: nowTs + (validMins * 60),
+          periodSeconds: 3600,
+          maxValuePerCall: 0n,
+          maxValuePerPeriod: 1n,
+          spendToken: ethers.ZeroAddress,
+          maxTokenPerCall: 0n,
+          maxTokenPerPeriod: 0n,
+        };
+
+        setOnchainStatus('Submitting createSession...');
+        const tx1 = await policy.createSession(sessionId, cfg, [targetAddress], [[]]);
+        await tx1.wait();
+
+        setOnchainStatus('Submitting executeThroughSession...');
+        const tx2 = await policy.executeThroughSession(sessionId, targetAddress, 0n, '0x');
+        await tx2.wait();
+
+        setOnchainStatus(`On-chain test completed.\nSession: ${sessionId}\n${txLink(tx1.hash, 'Open createSession tx on BaseScan')}\n${txLink(tx2.hash, 'Open execute tx on BaseScan')}`);
+      } catch (err) {
+        setOnchainStatus(`On-chain test failed: ${err?.shortMessage || err?.message || String(err)}`);
+      } finally {
+        setOnchainBusy(false);
+      }
+    }
 
     function setRunningState(isRunning) {
       runButton.disabled = isRunning;
@@ -1059,6 +1342,7 @@ def render_demo_page() -> str:
     }
 
     loadPreset('budget');
+    hydrateWalletState();
     runDemo();
   </script>
 </body>
@@ -1126,64 +1410,83 @@ def simulate_demo_run(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 class DemoHTTPRequestHandler(BaseHTTPRequestHandler):
-    @staticmethod
-    def _resolve_asset_path(url_path: str) -> Path | None:
-        # Resolve only files under /assets to avoid path traversal.
-        if not url_path.startswith("/assets/"):
-            return None
+  @staticmethod
+  def _resolve_public_page(url_path: str) -> Path | None:
+    if url_path in {"/", "/index.html"}:
+      target = "index.html"
+    elif url_path in {"/playground", "/playground/", "/playground.html"}:
+      target = "playground.html"
+    else:
+      return None
 
-        rel = url_path.lstrip("/")
-        if ".." in rel.split("/"):
-            return None
+    candidates = [
+      Path.cwd() / target,
+      Path(__file__).resolve().parents[1] / target,
+    ]
+    for candidate in candidates:
+      if candidate.is_file():
+        return candidate
+    return None
 
-        candidates = [
-            Path.cwd() / rel,
-            Path(__file__).resolve().parents[1] / rel,
-        ]
-        for candidate in candidates:
-            if candidate.is_file():
-                return candidate
-        return None
+  @staticmethod
+  def _resolve_asset_path(url_path: str) -> Path | None:
+    # Resolve only files under /assets to avoid path traversal.
+    if not url_path.startswith("/assets/"):
+      return None
 
-    def do_GET(self) -> None:
-        path = unquote(self.path.split("?", 1)[0])
+    rel = url_path.lstrip("/")
+    if ".." in rel.split("/"):
+      return None
 
-        if path == "/":
-            content = render_demo_page().encode("utf-8")
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(content)))
-            self.end_headers()
-            self.wfile.write(content)
-            return
+    candidates = [
+      Path.cwd() / rel,
+      Path(__file__).resolve().parents[1] / rel,
+    ]
+    for candidate in candidates:
+      if candidate.is_file():
+        return candidate
+    return None
 
-        asset = self._resolve_asset_path(path)
-        if asset is not None:
-            content = asset.read_bytes()
-            mime, _ = mimetypes.guess_type(str(asset))
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", mime or "application/octet-stream")
-            self.send_header("Content-Length", str(len(content)))
-            self.end_headers()
-            self.wfile.write(content)
-            return
+  def do_GET(self) -> None:
+    path = unquote(self.path.split("?", 1)[0])
 
-        self.send_error(HTTPStatus.NOT_FOUND)
+    page = self._resolve_public_page(path)
+    if page is not None:
+      content = page.read_bytes()
+      self.send_response(HTTPStatus.OK)
+      self.send_header("Content-Type", "text/html; charset=utf-8")
+      self.send_header("Content-Length", str(len(content)))
+      self.end_headers()
+      self.wfile.write(content)
+      return
 
-    def do_POST(self) -> None:
-        if self.path != "/api/simulate":
-            self.send_error(HTTPStatus.NOT_FOUND)
-            return
+    asset = self._resolve_asset_path(path)
+    if asset is not None:
+      content = asset.read_bytes()
+      mime, _ = mimetypes.guess_type(str(asset))
+      self.send_response(HTTPStatus.OK)
+      self.send_header("Content-Type", mime or "application/octet-stream")
+      self.send_header("Content-Length", str(len(content)))
+      self.end_headers()
+      self.wfile.write(content)
+      return
 
-        length = int(self.headers.get("Content-Length", "0"))
-        payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
-        result = simulate_demo_run(payload)
-        content = json.dumps(result).encode("utf-8")
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(content)))
-        self.end_headers()
-        self.wfile.write(content)
+    self.send_error(HTTPStatus.NOT_FOUND)
+
+  def do_POST(self) -> None:
+    if self.path != "/api/simulate":
+      self.send_error(HTTPStatus.NOT_FOUND)
+      return
+
+    length = int(self.headers.get("Content-Length", "0"))
+    payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+    result = simulate_demo_run(payload)
+    content = json.dumps(result).encode("utf-8")
+    self.send_response(HTTPStatus.OK)
+    self.send_header("Content-Type", "application/json; charset=utf-8")
+    self.send_header("Content-Length", str(len(content)))
+    self.end_headers()
+    self.wfile.write(content)
 
     def log_message(self, format: str, *args: object) -> None:
         return
