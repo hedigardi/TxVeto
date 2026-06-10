@@ -1410,64 +1410,83 @@ def simulate_demo_run(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 class DemoHTTPRequestHandler(BaseHTTPRequestHandler):
-    @staticmethod
-    def _resolve_asset_path(url_path: str) -> Path | None:
-        # Resolve only files under /assets to avoid path traversal.
-        if not url_path.startswith("/assets/"):
-            return None
+  @staticmethod
+  def _resolve_public_page(url_path: str) -> Path | None:
+    if url_path in {"/", "/index.html"}:
+      target = "index.html"
+    elif url_path in {"/playground", "/playground/", "/playground.html"}:
+      target = "playground.html"
+    else:
+      return None
 
-        rel = url_path.lstrip("/")
-        if ".." in rel.split("/"):
-            return None
+    candidates = [
+      Path.cwd() / target,
+      Path(__file__).resolve().parents[1] / target,
+    ]
+    for candidate in candidates:
+      if candidate.is_file():
+        return candidate
+    return None
 
-        candidates = [
-            Path.cwd() / rel,
-            Path(__file__).resolve().parents[1] / rel,
-        ]
-        for candidate in candidates:
-            if candidate.is_file():
-                return candidate
-        return None
+  @staticmethod
+  def _resolve_asset_path(url_path: str) -> Path | None:
+    # Resolve only files under /assets to avoid path traversal.
+    if not url_path.startswith("/assets/"):
+      return None
 
-    def do_GET(self) -> None:
-        path = unquote(self.path.split("?", 1)[0])
+    rel = url_path.lstrip("/")
+    if ".." in rel.split("/"):
+      return None
 
-        if path == "/":
-            content = render_demo_page().encode("utf-8")
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(content)))
-            self.end_headers()
-            self.wfile.write(content)
-            return
+    candidates = [
+      Path.cwd() / rel,
+      Path(__file__).resolve().parents[1] / rel,
+    ]
+    for candidate in candidates:
+      if candidate.is_file():
+        return candidate
+    return None
 
-        asset = self._resolve_asset_path(path)
-        if asset is not None:
-            content = asset.read_bytes()
-            mime, _ = mimetypes.guess_type(str(asset))
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", mime or "application/octet-stream")
-            self.send_header("Content-Length", str(len(content)))
-            self.end_headers()
-            self.wfile.write(content)
-            return
+  def do_GET(self) -> None:
+    path = unquote(self.path.split("?", 1)[0])
 
-        self.send_error(HTTPStatus.NOT_FOUND)
+    page = self._resolve_public_page(path)
+    if page is not None:
+      content = page.read_bytes()
+      self.send_response(HTTPStatus.OK)
+      self.send_header("Content-Type", "text/html; charset=utf-8")
+      self.send_header("Content-Length", str(len(content)))
+      self.end_headers()
+      self.wfile.write(content)
+      return
 
-    def do_POST(self) -> None:
-        if self.path != "/api/simulate":
-            self.send_error(HTTPStatus.NOT_FOUND)
-            return
+    asset = self._resolve_asset_path(path)
+    if asset is not None:
+      content = asset.read_bytes()
+      mime, _ = mimetypes.guess_type(str(asset))
+      self.send_response(HTTPStatus.OK)
+      self.send_header("Content-Type", mime or "application/octet-stream")
+      self.send_header("Content-Length", str(len(content)))
+      self.end_headers()
+      self.wfile.write(content)
+      return
 
-        length = int(self.headers.get("Content-Length", "0"))
-        payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
-        result = simulate_demo_run(payload)
-        content = json.dumps(result).encode("utf-8")
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(content)))
-        self.end_headers()
-        self.wfile.write(content)
+    self.send_error(HTTPStatus.NOT_FOUND)
+
+  def do_POST(self) -> None:
+    if self.path != "/api/simulate":
+      self.send_error(HTTPStatus.NOT_FOUND)
+      return
+
+    length = int(self.headers.get("Content-Length", "0"))
+    payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+    result = simulate_demo_run(payload)
+    content = json.dumps(result).encode("utf-8")
+    self.send_response(HTTPStatus.OK)
+    self.send_header("Content-Type", "application/json; charset=utf-8")
+    self.send_header("Content-Length", str(len(content)))
+    self.end_headers()
+    self.wfile.write(content)
 
     def log_message(self, format: str, *args: object) -> None:
         return

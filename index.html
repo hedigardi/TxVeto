@@ -6,7 +6,7 @@
     <title>TxVeto | Runtime Guardrails for AI Agents</title>
     <meta
       name="description"
-      content="TxVeto adds in-process budget and loop vetoes to AI agent runtimes."
+      content="TxVeto provides budget and loop guardrails for AI agent runtimes."
     />
     <link rel="canonical" href="https://txveto.hedigardi.com/" />
     <meta name="robots" content="index,follow,max-image-preview:large" />
@@ -18,7 +18,7 @@
     />
     <meta
       property="og:description"
-      content="In-process budget and loop vetoes for AI agents. Stop runaway spend before the next expensive step."
+      content="Stop runaway spend and repeated loops before the next expensive agent step."
     />
     <meta property="og:url" content="https://txveto.hedigardi.com/" />
     <meta
@@ -32,7 +32,7 @@
     />
     <meta
       name="twitter:description"
-      content="In-process budget and loop vetoes for AI agents. Stop runaway spend before the next expensive step."
+      content="Stop runaway spend and repeated loops before the next expensive agent step."
     />
     <meta
       name="twitter:image"
@@ -56,519 +56,101 @@
       href="/assets/images/favicon-16x16.png"
     />
     <link rel="shortcut icon" href="/assets/images/favicon.ico" />
-    <meta name="theme-color" content="#f6f4ef" />
     <link rel="manifest" href="/assets/images/site.webmanifest" />
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "TxVeto",
-        "applicationCategory": "DeveloperApplication",
-        "operatingSystem": "Cross-platform",
-        "url": "https://txveto.hedigardi.com/",
-        "description": "In-process budget and loop guardrails for AI agent runtimes.",
-        "publisher": {
-          "@type": "Organization",
-          "name": "hedigardi.com",
-          "url": "https://hedigardi.com"
-        }
-      }
-    </script>
-    <style>
-      :root {
-        --bg-a: #f6f4ef;
-        --bg-b: #eee8dc;
-        --bg-c: #d4ebe5;
-        --panel: rgba(255, 252, 245, 0.88);
-        --panel-strong: rgba(255, 253, 248, 0.95);
-        --ink: #1c2633;
-        --muted: #5b6676;
-        --line: #d9d2c4;
-        --brand: #dc5e2f;
-        --accent: #0b6e67;
-        --shadow: 0 24px 60px rgba(28, 38, 51, 0.13);
-      }
-
-      [data-theme="dark"] {
-        --bg-a: #060a14;
-        --bg-b: #0b1222;
-        --bg-c: #0a2a2b;
-        --panel: rgba(12, 18, 32, 0.84);
-        --panel-strong: rgba(15, 23, 42, 0.96);
-        --ink: #e2e8f0;
-        --muted: #9aa8bd;
-        --line: rgba(148, 163, 184, 0.2);
-        --brand: #f59e0b;
-        --accent: #38bdf8;
-        --shadow: 0 30px 90px rgba(2, 6, 23, 0.45);
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        min-height: 100vh;
-        font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
-        color: var(--ink);
-        background:
-          radial-gradient(
-            1200px 500px at 0% 0%,
-            color-mix(in srgb, var(--bg-b) 78%, transparent) 0%,
-            transparent 62%
-          ),
-          radial-gradient(
-            1000px 420px at 100% 10%,
-            color-mix(in srgb, var(--bg-c) 68%, transparent) 0%,
-            transparent 55%
-          ),
-          linear-gradient(
-            180deg,
-            var(--bg-a) 0%,
-            color-mix(in srgb, var(--bg-a) 80%, var(--bg-b)) 100%
-          );
-        display: flex;
-        flex-direction: column;
-      }
-
-      .wrap {
-        width: min(1080px, calc(100% - 2rem));
-        margin: 0 auto;
-      }
-
-      .topbar {
-        padding: 1.2rem 0 0.4rem;
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 1rem;
-      }
-
-      .top-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-      }
-
-      .nav-link,
-      .theme-toggle,
-      .btn,
-      .logo-modal-close {
-        border: 1px solid var(--line);
-        background: var(--panel-strong);
-        color: var(--ink);
-        font-weight: 600;
-        text-decoration: none;
-        transition:
-          transform 160ms ease,
-          box-shadow 160ms ease,
-          border-color 160ms ease,
-          background 160ms ease,
-          color 160ms ease;
-      }
-
-      .nav-link,
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.55rem;
-        padding: 0.72rem 1rem;
-        border-radius: 14px;
-        font-size: 0.92rem;
-      }
-
-      .nav-link:hover,
-      .btn:hover,
-      .theme-toggle:hover,
-      .logo-modal-close:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 12px 24px rgba(28, 38, 51, 0.12);
-      }
-
-      .nav-link:focus-visible,
-      .btn:focus-visible,
-      .theme-toggle:focus-visible,
-      .logo-modal-close:focus-visible {
-        outline: 2px solid color-mix(in srgb, var(--accent) 58%, white);
-        outline-offset: 3px;
-      }
-
-      .theme-toggle {
-        width: 42px;
-        height: 42px;
-        padding: 0;
-        cursor: pointer;
-        border-radius: 14px;
-      }
-
-      .hero {
-        margin-top: 1.4rem;
-        padding: 2rem;
-        border: 1px solid var(--line);
-        border-radius: 28px;
-        background: var(--panel);
-        box-shadow: var(--shadow);
-      }
-
-      .hero-top {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 1rem;
-      }
-
-      .intro-brand {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        margin-bottom: 14px;
-      }
-      .kicker {
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        padding: 0.35rem 0.75rem;
-        font-size: 0.82rem;
-        color: var(--muted);
-        background: var(--panel-strong);
-      }
-
-      .hero-logo-wrap {
-        width: 150px;
-        padding: 14px 12px;
-        border-radius: 24px;
-        border: 1px solid var(--line);
-        background: var(--panel-strong);
-        display: flex;
-        justify-content: center;
-      }
-
-      .logo-trigger {
-        position: relative;
-        display: inline-flex;
-      }
-      .hero-logo {
-        width: 92px;
-        height: 92px;
-        border-radius: 22px;
-        object-fit: contain;
-        padding: 10px;
-        cursor: zoom-in;
-        background: linear-gradient(
-          160deg,
-          rgba(250, 245, 235, 0.95),
-          rgba(255, 255, 255, 0.82)
-        );
-        border: 1px solid var(--line);
-        transition: transform 160ms ease;
-      }
-      .hero-logo:hover {
-        transform: translateY(-2px) scale(1.03);
-      }
-
-      h1 {
-        margin: 0.85rem 0 0.65rem;
-        font-size: clamp(2rem, 5vw, 4rem);
-        line-height: 0.96;
-        letter-spacing: -0.04em;
-      }
-
-      .lead {
-        margin: 0;
-        color: var(--muted);
-        max-width: 65ch;
-        line-height: 1.7;
-      }
-
-      .cta-row {
-        margin-top: 1.4rem;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-      }
-      .btn {
-        border: 1px solid transparent;
-        font-weight: 700;
-        color: var(--ink);
-      }
-      .btn.primary {
-        background: linear-gradient(
-          135deg,
-          var(--brand),
-          color-mix(in srgb, var(--brand) 70%, #ffcf7b)
-        );
-        color: white;
-        box-shadow: 0 16px 28px
-          color-mix(in srgb, var(--brand) 24%, transparent);
-      }
-      .btn.secondary {
-        border-color: var(--line);
-        background: var(--panel-strong);
-      }
-      .btn.secondary:hover {
-        background: color-mix(in srgb, var(--panel-strong) 78%, var(--bg-c));
-      }
-
-      .button-icon {
-        width: 1em;
-        height: 1em;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        flex: 0 0 auto;
-      }
-      .button-icon svg {
-        width: 1em;
-        height: 1em;
-        display: block;
-        stroke: currentColor;
-        fill: none;
-        stroke-width: 2;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-
-      .grid {
-        margin: 1.2rem 0 2.3rem;
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.8rem;
-      }
-
-      .card {
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 0.9rem;
-        background: var(--panel-strong);
-      }
-      .card strong {
-        display: block;
-        margin-bottom: 0.35rem;
-      }
-      .card span {
-        color: var(--muted);
-        line-height: 1.55;
-        font-size: 0.93rem;
-      }
-
-      .site-footer {
-        margin-top: 18px;
-        padding: 16px 20px;
-        border-radius: 18px;
-        border: 1px solid var(--line);
-        background: var(--panel);
-        display: flex;
-        justify-content: space-between;
-        color: var(--muted);
-        gap: 8px;
-      }
-      .site-footer a {
-        color: var(--accent);
-        text-decoration: none;
-        font-weight: 600;
-      }
-
-      .logo-modal {
-        position: fixed;
-        inset: 0;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-        background: rgba(2, 6, 23, 0.72);
-        backdrop-filter: blur(8px);
-        z-index: 999;
-      }
-      .logo-modal.open {
-        display: flex;
-      }
-      .logo-modal-card {
-        position: relative;
-        width: min(520px, calc(100vw - 48px));
-        border-radius: 28px;
-        padding: 26px;
-        background: linear-gradient(
-          160deg,
-          rgba(249, 250, 251, 0.98),
-          rgba(236, 253, 245, 0.96)
-        );
-      }
-      .logo-modal-image {
-        width: 100%;
-        aspect-ratio: 1 / 1;
-        object-fit: contain;
-        border-radius: 20px;
-        padding: 20px;
-        background: linear-gradient(
-          160deg,
-          rgba(255, 255, 255, 0.96),
-          rgba(241, 245, 249, 0.92)
-        );
-      }
-      .logo-modal-close {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        width: 36px;
-        height: 36px;
-        border-radius: 999px;
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        background: rgba(15, 23, 42, 0.84);
-        color: #f8fafc;
-        font-size: 20px;
-        cursor: pointer;
-      }
-
-      @media (max-width: 860px) {
-        .hero {
-          padding: 1.35rem;
-        }
-        .hero-top {
-          flex-direction: column;
-        }
-        .grid {
-          grid-template-columns: 1fr;
-        }
-        .site-footer {
-          flex-direction: column;
-          align-items: flex-start;
-        }
-      }
-    </style>
+    <meta name="theme-color" content="#f4f6f8" />
+    <link rel="stylesheet" href="/assets/styles/site.css" />
   </head>
   <body>
-    <header class="wrap">
-      <div class="topbar">
-        <div class="top-actions">
-          <a class="nav-link" href="/playground">
-            <span class="button-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M5 19 19 5" />
-                <path d="M10 5h9v9" />
-              </svg>
+    <div class="page">
+      <header class="site-header">
+        <div class="nav-shell">
+          <a class="brand" href="/">
+            <img src="/assets/images/logo.png" alt="TxVeto logo" />
+            <span>
+              <strong>TxVeto</strong>
+              <span>Decentralized Transaction Veto</span>
             </span>
-            <span>Playground</span>
           </a>
-          <button
-            id="theme_toggle"
-            class="theme-toggle"
-            type="button"
-            aria-label="Toggle color theme"
-          >
-            ☾
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <main class="wrap">
-      <section class="hero">
-        <div class="intro-brand">
-          <div class="logo-trigger">
-            <img
-              id="logo_trigger"
-              class="hero-logo"
-              src="/assets/images/logo.png"
-              alt="TxVeto logo"
-              role="button"
-              tabindex="0"
-            />
+          <div class="nav-actions">
+            <a class="btn" href="/playground">Playground</a>
+            <button
+              id="theme_toggle"
+              class="theme-toggle"
+              type="button"
+              aria-label="Switch theme"
+            >
+              ☾
+            </button>
           </div>
-          <div>
-            <strong style="font-size: 1.25rem">TxVeto</strong>
-            <div style="color: var(--muted)">
-              Decentralized Transaction Veto
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div class="hero-layout">
+            <div>
+              <span class="hero-kicker">Runtime Safety Layer</span>
+              <h1>Secure agent execution before budgets break.</h1>
+              <p>
+                Build autonomous workflows with deterministic budget and loop
+                controls. TxVeto enforces policy checks before each expensive
+                step so runtime behavior stays predictable in production.
+              </p>
+              <div class="hero-actions">
+                <a class="btn primary" href="/playground"
+                  >Open Interactive Playground</a
+                >
+                <a
+                  class="btn"
+                  href="https://github.com/hedigardi/TxVeto"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >GitHub</a
+                >
+                <a
+                  class="btn"
+                  href="https://pypi.org/project/txveto/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >PyPI</a
+                >
+              </div>
             </div>
+            <aside class="hero-panel">
+              <strong>Built for autonomous production flows</strong>
+              <p>
+                Keep policy decisions close to execution. TxVeto is designed to
+                make safety checks explicit, inspectable, and fast enough to run
+                before every costly tool step.
+              </p>
+            </aside>
           </div>
-        </div>
-        <h1>Stop runaway agent spend before the next step.</h1>
-        <p class="lead">
-          TxVeto is an in-process budget and loop guard for AI agent execution.
-          It applies veto logic locally, tracks cumulative spend, and blocks
-          repeated tool-call loops.
-        </p>
-        <div class="cta-row">
-          <a class="btn primary" href="/playground">
-            <span class="button-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M5 19 19 5" />
-                <path d="M10 5h9v9" />
-              </svg>
-            </span>
-            <span>Open Playground</span>
-          </a>
-          <a
-            class="btn secondary"
-            href="https://github.com/hedigardi/TxVeto"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span class="button-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M14 3h7v7" />
-                <path d="M10 14 21 3" />
-                <path d="M21 14v7h-7" />
-                <path d="M3 10V3h7" />
-              </svg>
-            </span>
-            <span>View on GitHub</span>
-          </a>
-          <a
-            class="btn secondary"
-            href="https://pypi.org/project/txveto/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span class="button-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M7 7.5 12 4l5 3.5v6l-5 3.5-5-3.5z" />
-                <path d="M12 4v17" />
-              </svg>
-            </span>
-            <span>PyPI Package</span>
-          </a>
-          <a
-            class="btn secondary"
-            href="https://www.npmjs.com/package/txveto-js"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span class="button-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M4 4h16v16H4z" />
-                <path d="M8 8h8v8" />
-                <path d="M8 16V8h8" />
-              </svg>
-            </span>
-            <span>npm Package</span>
-          </a>
-        </div>
-      </section>
+        </section>
 
-      <section class="grid" aria-label="Core capabilities">
-        <article class="card">
-          <strong>Budget Guard</strong>
-          <span
-            >Stops execution once cumulative runtime cost crosses your
-            configured budget ceiling.</span
-          >
-        </article>
-        <article class="card">
-          <strong>Loop Detection</strong>
-          <span
-            >Detects repetitive tool-call patterns and vetoes runaway behavior
-            early.</span
-          >
-        </article>
-        <article class="card">
-          <strong>MCP Support</strong>
-          <span
-            >Expose budget and policy controls through MCP tools for runtime
-            governance.</span
-          >
-        </article>
-      </section>
+        <section class="grid-3">
+          <article class="feature">
+            <strong>Budget-aware</strong>
+            <span
+              >Track cumulative spend and halt before the configured limit is
+              exceeded.</span
+            >
+          </article>
+          <article class="feature">
+            <strong>Loop-aware</strong>
+            <span
+              >Detect repetitive tool-call patterns and stop runaway execution
+              loops.</span
+            >
+          </article>
+          <article class="feature">
+            <strong>On-chain ready</strong>
+            <span
+              >Test on Base Sepolia with wallet-based session creation and
+              execution.</span
+            >
+          </article>
+        </section>
+      </main>
 
       <footer class="site-footer">
         <div>Copyright (c) 2026 TxVeto. All rights reserved.</div>
@@ -582,83 +164,8 @@
           >
         </div>
       </footer>
-    </main>
-
-    <div class="logo-modal" id="logo_modal" aria-hidden="true">
-      <div
-        class="logo-modal-card"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Expanded TxVeto logo"
-      >
-        <button
-          class="logo-modal-close"
-          id="logo_modal_close"
-          aria-label="Close logo preview"
-        >
-          ×
-        </button>
-        <img
-          class="logo-modal-image"
-          src="/assets/images/logo.png"
-          alt="TxVeto logo enlarged"
-        />
-      </div>
     </div>
 
-    <script>
-      const root = document.documentElement;
-      const themeToggle = document.getElementById("theme_toggle");
-      const THEME_KEY = "txveto-theme";
-
-      function getPreferredTheme() {
-        return window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light";
-      }
-
-      function applyTheme(theme) {
-        root.setAttribute("data-theme", theme);
-        themeToggle.textContent = theme === "dark" ? "☀" : "☾";
-      }
-
-      applyTheme(localStorage.getItem(THEME_KEY) || getPreferredTheme());
-      themeToggle.addEventListener("click", () => {
-        const next =
-          root.getAttribute("data-theme") === "dark" ? "light" : "dark";
-        localStorage.setItem(THEME_KEY, next);
-        applyTheme(next);
-      });
-
-      const logoTrigger = document.getElementById("logo_trigger");
-      const logoModal = document.getElementById("logo_modal");
-      const logoModalClose = document.getElementById("logo_modal_close");
-
-      function openLogoModal() {
-        logoModal.classList.add("open");
-        logoModal.setAttribute("aria-hidden", "false");
-      }
-
-      function closeLogoModal() {
-        logoModal.classList.remove("open");
-        logoModal.setAttribute("aria-hidden", "true");
-      }
-
-      logoTrigger.addEventListener("click", openLogoModal);
-      logoTrigger.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          openLogoModal();
-        }
-      });
-      logoModalClose.addEventListener("click", closeLogoModal);
-      logoModal.addEventListener("click", (event) => {
-        if (event.target === logoModal) closeLogoModal();
-      });
-      document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && logoModal.classList.contains("open"))
-          closeLogoModal();
-      });
-    </script>
+    <script src="/assets/scripts/theme.js"></script>
   </body>
 </html>

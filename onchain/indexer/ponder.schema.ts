@@ -1,6 +1,6 @@
 import { onchainTable } from "ponder";
 
-export const Session = onchainTable("session", (t) => ({
+export const session = onchainTable("session", (t) => ({
   id: t.hex().primaryKey(),
   owner: t.hex().notNull(),
   sessionKey: t.hex().notNull(),
@@ -18,7 +18,7 @@ export const Session = onchainTable("session", (t) => ({
   tokenSpentInWindow: t.bigint().notNull(),
 }));
 
-export const SessionExecution = onchainTable("session_execution", (t) => ({
+export const sessionExecution = onchainTable("session_execution", (t) => ({
   id: t.text().primaryKey(),
   sessionId: t.hex().notNull(),
   txHash: t.hex().notNull(),
